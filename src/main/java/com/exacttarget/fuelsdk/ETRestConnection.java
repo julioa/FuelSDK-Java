@@ -62,6 +62,8 @@ public class ETRestConnection {
     private String endpoint = null;
 
     private boolean isAuthConnection = false;
+    
+    private String charset = null;
 
     public ETRestConnection(ETClient client, String endpoint)
         throws ETSdkException
@@ -69,7 +71,19 @@ public class ETRestConnection {
         this(client, endpoint, false);
     }
 
+    public ETRestConnection(ETClient client, String endpoint, String charset)
+        throws ETSdkException
+    {
+        this(client, endpoint, false, charset);
+    }
+    
     public ETRestConnection(ETClient client, String endpoint, boolean isAuthConnection)
+        throws ETSdkException
+    {
+        this(client, endpoint, isAuthConnection, null);
+    }
+    
+    public ETRestConnection(ETClient client, String endpoint, boolean isAuthConnection, String charset)
         throws ETSdkException
     {
         this.client = client;
@@ -77,7 +91,10 @@ public class ETRestConnection {
         this.endpoint = endpoint;
 
         this.isAuthConnection = isAuthConnection;
+        
+        this.charset = charset;
     }
+    
 
     public Response get(String path)
         throws ETSdkException
@@ -200,7 +217,11 @@ public class ETRestConnection {
           case PATCH:
           case DELETE:
             connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json");
+            if (charset != null && charset.trim().length() > 0) {
+                connection.setRequestProperty("Content-Type", "application/json;charset="+charset);
+            } else {
+                connection.setRequestProperty("Content-Type", "application/json");
+            }            
             break;
           default:
             throw new ETSdkException("unsupported request method: " + method.toString());
@@ -227,6 +248,12 @@ public class ETRestConnection {
             }
             try {
                 OutputStream os = connection.getOutputStream();
+                byte[] payloadBytes;
+                if (charset != null && charset.trim().length() > 0) {
+                    payloadBytes=payload.getBytes(charset);
+                } else {
+                    payloadBytes=payload.getBytes();
+                }
                 os.write(payload.getBytes());
                 os.flush();
             } catch (IOException ex) {
